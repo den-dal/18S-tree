@@ -31,7 +31,7 @@ dim(tax_df)
 
 seqs <- readDNAStringSet("18S_OTUs_Seqs.fasta", format="fasta")
 
-### Convert to phyloseq components ####
+### 3. Convert to phyloseq components ####
 OTU <- otu_table(as.matrix(otu_mat), taxa_are_rows = TRUE)
 SAM <- sample_data(meta_df)
 TAX <- tax_table(as.matrix(tax_df))
@@ -73,7 +73,7 @@ phy_island
 physeq1 = merge_phyloseq(phy_island, REFSEQ)
 physeq1
 
-# Align reference sequences
+# 4. Align reference sequences
 # Load DECIPHER
 if (!requireNamespace("DECIPHER", quietly=TRUE)) {
   BiocManager::install("DECIPHER")
@@ -87,26 +87,26 @@ alignment <- AlignSeqs(DNAStringSet(seqs), anchor=NA)
 # Quick check
 alignment[1:5]  # print first 5 aligned sequences
 
-# Step 7: infer a phylogenetic tree with phangorn
-# 7a. Load phangorn
+# 5 infer a phylogenetic tree with phangorn
+# 5a. Load phangorn
 if (!requireNamespace("phangorn", quietly=TRUE)) {
   install.packages("phangorn")
 }
 library(phangorn)
 
-# 7b. Convert the DECIPHER alignment into a phyDat object
+# 5b. Convert the DECIPHER alignment into a phyDat object
 phang.align <- phyDat(as.matrix(alignment), type = "DNA")
 
-# 7c. Estimate a substitution model distance matrix (GTR by default)
+# 5c. Estimate a substitution model distance matrix (GTR by default)
 dm <- dist.ml(phang.align)
 
-# 7d. Build a neighbor-joining (NJ) tree
+# 5d. Build a neighbor-joining (NJ) tree
 treeNJ <- NJ(dm)
 
-# 7e. Optionally midpoint‐root the tree
+# 5e. Optionally midpoint‐root the tree
 treeNJ <- midpoint(treeNJ)
 
-# 7f. (Optional) perform a quick ML optimization
+# 5f. (Optional) perform a quick ML optimization
 fit  <- pml(treeNJ, data = phang.align)
 fitGTR <- update(fit, k = 4, inv = 0.2)
 fitGTR <- optim.pml(fitGTR,
@@ -115,13 +115,13 @@ fitGTR <- optim.pml(fitGTR,
                     optGamma = TRUE,
                     rearrangement = "stochastic")
 
-# 7g. Extract the optimized tree
+# 5g. Extract the optimized tree
 final_tree <- fitGTR$tree
 
-# 7h. Merge into your phyloseq object
+# 5h. Merge into your phyloseq object
 physeq_tree <- merge_phyloseq(phy_island, phy_tree(final_tree))
 
-# 7i. Quick plot
+# 5i. Quick plot
 plot_tree(physeq_tree,
           ladderize  = "left",
           label.tips = "Phylum",    # or "taxa_names" for OTU IDs
@@ -129,7 +129,7 @@ plot_tree(physeq_tree,
           size = "abundance",
           title = "18S OTU Phylogeny (NJ + ML optimized)")
 
-### collapse OTUs at Phylum level ####
+### 6.  collapse OTUs at Phylum level ####
 phy_phylum <- tax_glom(phy_island, taxrank = "Phylum")
 phy_subphy <- tax_glom(phy_island, taxrank = "Subphylum")
 
