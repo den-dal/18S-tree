@@ -1,6 +1,6 @@
 # 18S-tree
 
-### 1.  install.packages(c("phyloseq","dplyr","ggplot2","vegan"))
+### 1. Install.packages ####
 library(phyloseq)
 library(dplyr)
 library(ggplot2)
@@ -31,16 +31,17 @@ dim(tax_df)
 
 seqs <- readDNAStringSet("18S_OTUs_Seqs.fasta", format="fasta")
 
-### 3. Convert to phyloseq components ####
+### Convert to phyloseq components ####
 OTU <- otu_table(as.matrix(otu_mat), taxa_are_rows = TRUE)
 SAM <- sample_data(meta_df)
 TAX <- tax_table(as.matrix(tax_df))
 REFSEQ <- refseq(seqs)
 
+# Create physeq, first without sequences to merge samples
 physeq <- phyloseq(OTU, TAX, SAM)
 physeq
 
-#── Identify and remove low-replicate Locations ─────────────────────────────
+### 3.Identify and remove low-replicate Locations ####
 # Build a small df of sample → Location
 sample_info <- data.frame(
   SampleID = sample_names(physeq),
@@ -63,6 +64,8 @@ physeq_filt <- subset_samples(physeq, Location %in% keep_locs)
 physeq <- prune_taxa(taxa_sums(physeq_filt) > 0, physeq_filt)
 physeq
  
+### 3. MERGE ALL SAMPLES FROM EACH ISLAND TOGETHER ####
+
 phy_island <- merge_samples(physeq, "Island", fun = sum)
 sample_data(phy_island) <- data.frame(
   Island = sample_names(phy_island),
@@ -70,10 +73,12 @@ sample_data(phy_island) <- data.frame(
 )
 phy_island
 
+### 4. Align reference sequences #####
+
+# Incorporate sequences in physeq element
 physeq1 = merge_phyloseq(phy_island, REFSEQ)
 physeq1
 
-# 4. Align reference sequences
 # Load DECIPHER
 if (!requireNamespace("DECIPHER", quietly=TRUE)) {
   BiocManager::install("DECIPHER")
@@ -87,7 +92,7 @@ alignment <- AlignSeqs(DNAStringSet(seqs), anchor=NA)
 # Quick check
 alignment[1:5]  # print first 5 aligned sequences
 
-# 5 infer a phylogenetic tree with phangorn
+### Step 5: infer a phylogenetic tree with phangorn ####
 # 5a. Load phangorn
 if (!requireNamespace("phangorn", quietly=TRUE)) {
   install.packages("phangorn")
@@ -129,7 +134,7 @@ plot_tree(physeq_tree,
           size = "abundance",
           title = "18S OTU Phylogeny (NJ + ML optimized)")
 
-### 6.  collapse OTUs at Phylum level ####
+### collapse OTUs at Phylum level ####
 phy_phylum <- tax_glom(phy_island, taxrank = "Phylum")
 phy_subphy <- tax_glom(phy_island, taxrank = "Subphylum")
 
@@ -148,3 +153,5 @@ plot_tree(phy_subphy,
           color       = "Island",
           size = "abundance",
           title = "18S OTU Subphylum tree with samples by island (NJ)")
+
+### Plot ABUNDANCES per taxa per island ####
